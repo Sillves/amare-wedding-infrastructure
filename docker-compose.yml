@@ -5,16 +5,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Core settings
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      
-      # Scaleway credentials (injected by GitHub Actions)
-      - SCW_SECRET_KEY=${SCW_SECRET_KEY}
-      - SCW_DEFAULT_ORGANIZATION_ID=${SCW_DEFAULT_ORGANIZATION_ID}
-      - SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}
+      - SCW_SECRET_KEY=${SCW_SECRET_KEY:-dummy-key}
+      - SCW_DEFAULT_ORGANIZATION_ID=${SCW_DEFAULT_ORGANIZATION_ID:-00000000-0000-0000-0000-000000000000}
+      - SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID:-00000000-0000-0000-0000-000000000000}
       - SCW_REGION=${SCW_REGION:-fr-par}
-    
+        
     restart: unless-stopped
     
     healthcheck:
