@@ -39,8 +39,18 @@ jobs:
             git clone --depth 1 https://github.com/Sillves/amare-wedding-infrastructure.git /tmp/infra
             
             # Copy new config
-            cp /tmp/infra/docker-compose.yml ./docker-compose.yml
-            cp -r /tmp/infra/nginx ./nginx
+            echo "📋 Copying docker-compose.yml..."
+            cp -v /tmp/infra/docker-compose.yml ./docker-compose.yml
+            
+            echo "📋 Copying nginx config..."
+            rm -rf ./nginx
+            mkdir -p ./nginx/conf.d
+            cp -v /tmp/infra/nginx/nginx.conf ./nginx/nginx.conf
+            cp -v /tmp/infra/nginx/conf.d/default.conf ./nginx/conf.d/default.conf
+            
+            echo "✅ Files copied successfully"
+            echo "Verifying files exist:"
+            ls -la ./docker-compose.yml ./nginx/nginx.conf ./nginx/conf.d/default.conf
             
             # Verify docker-compose syntax
             echo "🔍 Validating docker-compose syntax..."
