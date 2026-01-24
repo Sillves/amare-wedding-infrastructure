@@ -1,0 +1,88 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker-compose.yml'
+      - 'nginx/**'
+      - '.github/workflows/deploy-infra.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /app
+            
+            # Backup current config
+            mkdir -p backups
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            cp docker-compose.yml backups/docker-compose.yml.$TIMESTAMP || true
+            cp -r nginx backups/nginx.$TIMESTAMP || true
+            
+            echo "📥 Pulling latest infrastructure config from GitHub..."
+            git clone --depth 1 https://github.com/Sillves/amare-wedding-infrastructure.git /tmp/infra || true
+            
+            # Copy new config
+            cp /tmp/infra/docker-compose.yml ./docker-compose.yml
+            cp -r /tmp/infra/nginx ./nginx
+            
+            # Verify docker-compose syntax
+            echo "🔍 Validating docker-compose syntax..."
+            docker-compose config > /dev/null || {
+              echo "❌ Invalid docker-compose.yml"
+              cp backups/docker-compose.yml.$TIMESTAMP ./docker-compose.yml
+              cp -r backups/nginx.$TIMESTAMP ./nginx
+              exit 1
+            }
+            
+            # Verify nginx syntax
+            echo "🔍 Validating nginx syntax..."
+            docker exec amare-nginx nginx -t || {
+              echo "❌ Invalid nginx config"
+              cp backups/docker-compose.yml.$TIMESTAMP ./docker-compose.yml
+              cp -r backups/nginx.$TIMESTAMP ./nginx
+              docker exec amare-nginx nginx -s reload
+              exit 1
+            }
+            
+            echo "🚀 Reloading nginx..."
+            docker exec amare-nginx nginx -s reload
+            
+            # Verify deployment
+            echo "📊 Deployment status:"
+            docker-compose ps
+            
+            echo ""
+            echo "📋 Nginx logs (last 10 lines):"
+            docker logs amare-nginx | tail -10
+            
+            echo ""
+            echo "✅ Infrastructure deployment successful!"
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Infrastructure deployment successful!"
+          echo "🌐 Application: https://amare.wedding"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Infrastructure deployment failed!"
+          echo "Check the logs above for details"
+          exit 1

@@ -1,0 +1,87 @@
+services:
+  api:
+    image: rg.fr-par.scw.cloud/amare-wedding/api:latest
+    container_name: amare-api
+    ports:
+      - "8080:8080"
+    environment:
+      # Core settings
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      
+      # Scaleway credentials (injected by GitHub Actions)
+      - SCW_SECRET_KEY=${SCW_SECRET_KEY}
+      - SCW_DEFAULT_ORGANIZATION_ID=${SCW_DEFAULT_ORGANIZATION_ID}
+      - SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}
+      - SCW_REGION=${SCW_REGION:-fr-par}
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - amare-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: rg.fr-par.scw.cloud/amare-wedding/frontend:latest
+    container_name: amare-frontend
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - amare-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:alpine
+    container_name: amare-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    
+    restart: unless-stopped
+    
+    depends_on:
+      - api
+      - frontend
+    
+    networks:
+      - amare-network
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  amare-network:
+    driver: bridge
