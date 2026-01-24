@@ -20,12 +20,21 @@ jobs:
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
         with:
           host: ${{ secrets.VPS_IP }}
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          envs: SCW_SECRET_KEY,SCW_DEFAULT_ORGANIZATION_ID,SCW_DEFAULT_PROJECT_ID
           script: |
+            export SCW_SECRET_KEY="${SCW_SECRET_KEY}"
+            export SCW_DEFAULT_ORGANIZATION_ID="${SCW_DEFAULT_ORGANIZATION_ID}"
+            export SCW_DEFAULT_PROJECT_ID="${SCW_DEFAULT_PROJECT_ID}"
+            
             cd /app
             
             # Backup current config
@@ -71,16 +80,22 @@ jobs:
               exit 1
             }
             
-            echo "🚀 Reloading nginx..."
-            docker exec amare-nginx nginx -s reload
+            echo "🚀 Pulling latest containers..."
+            docker-compose pull
+            
+            echo "🚀 Starting containers with secrets..."
+            docker-compose up -d
+            
+            # Wait for containers to start
+            sleep 5
             
             # Verify deployment
             echo "📊 Deployment status:"
             docker-compose ps
             
             echo ""
-            echo "📋 Nginx logs (last 10 lines):"
-            docker logs amare-nginx | tail -10
+            echo "📋 API logs (last 20 lines):"
+            docker-compose logs api | tail -20
             
             echo ""
             echo "✅ Infrastructure deployment successful!"
