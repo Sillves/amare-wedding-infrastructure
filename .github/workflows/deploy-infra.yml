@@ -35,7 +35,8 @@ jobs:
             cp -r nginx backups/nginx.$TIMESTAMP || true
             
             echo "📥 Pulling latest infrastructure config from GitHub..."
-            git clone --depth 1 https://github.com/Sillves/amare-wedding-infrastructure.git /tmp/infra || true
+            rm -rf /tmp/infra
+            git clone --depth 1 https://github.com/Sillves/amare-wedding-infrastructure.git /tmp/infra
             
             # Copy new config
             cp /tmp/infra/docker-compose.yml ./docker-compose.yml
