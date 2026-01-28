@@ -69,6 +69,15 @@ jobs:
             export SCW_DEFAULT_PROJECT_ID="${SCW_DEFAULT_PROJECT_ID}"
             
             cd /app
+
+            # Write env file for docker-compose (avoids missing SCW_* warnings)
+            umask 077
+            cat > /app/.env <<EOF
+            SCW_SECRET_KEY=${SCW_SECRET_KEY}
+            SCW_DEFAULT_ORGANIZATION_ID=${SCW_DEFAULT_ORGANIZATION_ID}
+            SCW_DEFAULT_PROJECT_ID=${SCW_DEFAULT_PROJECT_ID}
+            SCW_REGION=fr-par
+            EOF
             
             # Backup current config
             mkdir -p backups
