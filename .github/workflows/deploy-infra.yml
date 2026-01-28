@@ -103,16 +103,18 @@ jobs:
               exit 1
             }
             
-            # Verify nginx syntax
+            # Verify nginx syntax (one-off container to avoid dependency on running nginx)
             echo "🔍 Validating nginx syntax..."
-            docker exec amare-nginx nginx -t || {
+            docker run --rm \
+              -v /app/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+              -v /app/nginx/conf.d:/etc/nginx/conf.d:ro \
+              nginx:alpine nginx -t || {
               echo "❌ Invalid nginx config"
               cp backups/docker-compose.yml.$TIMESTAMP ./docker-compose.yml
               cp -r backups/nginx.$TIMESTAMP ./nginx
-              docker exec amare-nginx nginx -s reload
               exit 1
             }
-            
+
             echo "🚀 Pulling latest containers..."
             docker-compose pull
             
@@ -145,3 +147,5 @@ jobs:
           echo "❌ Infrastructure deployment failed!"
           echo "Check the logs above for details"
           exit 1
+
+
