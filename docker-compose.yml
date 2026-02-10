@@ -52,27 +52,50 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  portfolio:
+    image: rg.fr-par.scw.cloud/amare-wedding/portfolio:latest
+    container_name: portfolio
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - amare-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   nginx:
     image: nginx:alpine
     container_name: amare-nginx
     ports:
       - "80:80"
       - "443:443"
-    
+
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
-    
+
     restart: unless-stopped
-    
+
     depends_on:
       - api
       - frontend
-    
+      - portfolio
+
     networks:
       - amare-network
-    
+
     logging:
       driver: "json-file"
       options:
