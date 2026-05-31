@@ -132,10 +132,17 @@ jobs:
             
             echo "🚀 Starting containers with secrets..."
             docker-compose up -d
-            
+
             # Wait for containers to start
             sleep 5
-            
+
+            # Reclaim disk: drop dangling images (orphaned by the new :latest pull)
+            # and stopped containers. Running containers, tagged images, and volumes
+            # are untouched.
+            echo "🧹 Pruning dangling images and stopped containers..."
+            docker image prune -f || true
+            docker container prune -f || true
+
             # Verify deployment
             echo "📊 Deployment status:"
             docker-compose ps
